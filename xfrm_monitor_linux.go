@@ -38,7 +38,7 @@ func XfrmMonitor(ch chan<- XfrmMsg, done <-chan struct{}, errorChan chan<- error
 	if err != nil {
 		return nil
 	}
-	s, err := nl.SubscribeAt(netns.None(), netns.None(), unix.NETLINK_XFRM, groups...)
+	s, err := nl.SubscribeAt(netns.None(), netns.None(), unix.NETLINK_XFRM, 0, groups...)
 	if err != nil {
 		return err
 	}

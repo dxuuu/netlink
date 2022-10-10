@@ -568,7 +568,7 @@ func executeInNetns(newNs, curNs netns.NsHandle) (func(), error) {
 // and subscribe it to multicast groups passed in variable argument list.
 // Returns the netlink socket on which Receive() method can be called
 // to retrieve the messages from the kernel.
-func Subscribe(protocol int, groups ...uint) (*NetlinkSocket, error) {
+func Subscribe(protocol, recvBufSz int, groups ...uint) (*NetlinkSocket, error) {
 	fd, err := unix.Socket(unix.AF_NETLINK, unix.SOCK_RAW, protocol)
 	if err != nil {
 		return nil, err
@@ -582,6 +582,10 @@ func Subscribe(protocol int, groups ...uint) (*NetlinkSocket, error) {
 		s.lsa.Groups |= (1 << (g - 1))
 	}
 
+        if recvBufSz != 0 {
+		s.SetReceiveBufferSize(recvBufSz, true)
+        }
+
 	if err := unix.Bind(fd, &s.lsa); err != nil {
 		unix.Close(fd)
 		return nil, err
@@ -593,13 +597,26 @@ func Subscribe(protocol int, groups ...uint) (*NetlinkSocket, error) {
 // SubscribeAt works like Subscribe plus let's the caller choose the network
 // namespace in which the socket would be opened (newNs). Then control goes back
 // to curNs if open, otherwise to the netns at the time this function was called.
-func SubscribeAt(newNs, curNs netns.NsHandle, protocol int, groups ...uint) (*NetlinkSocket, error) {
+func SubscribeAt(newNs, curNs netns.NsHandle, protocol, recvBufSz int, groups ...uint) (*NetlinkSocket, error) {
 	c, err := executeInNetns(newNs, curNs)
 	if err != nil {
 		return nil, err
 	}
 	defer c()
-	return Subscribe(protocol, groups...)
+	return Subscribe(protocol, recvBufSz, groups...)
+}
+
+func (s *NetlinkSocket) SetReceiveBufferSize(size int, force bool) error {
+	opt := unix.SO_RCVBUF
+	if force {
+		opt = unix.SO_RCVBUFFORCE
+	}
+
+        if err := unix.SetsockoptInt(int(s.fd), unix.SOL_SOCKET, opt, size); err != nil {
+                return err
+        }
+
+	return nil
 }
 
 func (s *NetlinkSocket) Close() {
