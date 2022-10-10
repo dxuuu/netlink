@@ -123,7 +123,7 @@ func SocketGet(local, remote net.Addr) (*Socket, error) {
 		return nil, ErrNotImplemented
 	}
 
-	s, err := nl.Subscribe(unix.NETLINK_INET_DIAG)
+	s, err := nl.Subscribe(unix.NETLINK_INET_DIAG, 0)
 	if err != nil {
 		return nil, err
 	}

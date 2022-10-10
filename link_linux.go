@@ -1860,7 +1860,7 @@ func LinkSubscribeWithOptions(ch chan<- LinkUpdate, done <-chan struct{}, option
 }
 
 func linkSubscribeAt(newNs, curNs netns.NsHandle, ch chan<- LinkUpdate, done <-chan struct{}, cberr func(error), listExisting bool, rcvbuf int) error {
-	s, err := nl.SubscribeAt(newNs, curNs, unix.NETLINK_ROUTE, unix.RTNLGRP_LINK)
+	s, err := nl.SubscribeAt(newNs, curNs, unix.NETLINK_ROUTE, rcvbuf, unix.RTNLGRP_LINK)
 	if err != nil {
 		return err
 	}
@@ -1876,12 +1876,6 @@ func linkSubscribeAt(newNs, curNs netns.NsHandle, ch chan<- LinkUpdate, done <-c
 		msg := nl.NewIfInfomsg(unix.AF_UNSPEC)
 		req.AddData(msg)
 		if err := s.Send(req); err != nil {
-			return err
-		}
-	}
-	if rcvbuf != 0 {
-		err = pkgHandle.SetSocketReceiveBufferSize(rcvbuf, false)
-		if err != nil {
 			return err
 		}
 	}
